@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 from processador_eeg_minimal import ProcessadorEEG
+from eeg_preprocessor import process_txt_to_dataframe
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 import time
@@ -239,9 +240,9 @@ def calcular_potencia_media_bandas(df):
     return potencias
 
 # ---------- Upload ----------
-uploaded_files = st.file_uploader("📁 Carregue um ou mais CSVs com dados EEG", type=['csv'], accept_multiple_files=True)
+uploaded_files = st.file_uploader("📁 Carregue um ou mais arquivos (CSV ou TXT) com dados EEG", type=['csv', 'txt'], accept_multiple_files=True)
 if not uploaded_files:
-    st.info("⚙️ Carregue um ou mais arquivos CSV para começar a análise completa dos seus dados EEG.")
+    st.info("⚙️ Carregue um ou mais arquivos CSV ou TXT para começar a análise completa dos seus dados EEG.")
     st.stop()
 
 # Armazenar todos os arquivos carregados
@@ -252,14 +253,30 @@ if 'uploaded_data' not in st.session_state:
 tmpdir = tempfile.mkdtemp()
 for uploaded_file in uploaded_files:
     if uploaded_file.name not in st.session_state.uploaded_data:
-        tmp_csv = Path(tmpdir) / uploaded_file.name
-        with open(tmp_csv, "wb") as f:
+        tmp_file = Path(tmpdir) / uploaded_file.name
+        with open(tmp_file, "wb") as f:
             f.write(uploaded_file.getbuffer())
         
-        with st.spinner(f"⏳ Carregando {uploaded_file.name}..."):
-            df_raw = carregar_csv(str(tmp_csv))
-            df_parsed = parse_datetime(df_raw)
-            st.session_state.uploaded_data[uploaded_file.name] = df_parsed
+        with st.spinner(f"⏳ Processando {uploaded_file.name}..."):
+            if uploaded_file.name.lower().endswith('.csv'):
+                # Processar arquivo CSV normalmente
+                df_raw = carregar_csv(str(tmp_file))
+                df_parsed = parse_datetime(df_raw)
+                st.session_state.uploaded_data[uploaded_file.name] = df_parsed
+                st.success(f"✅ CSV carregado: {uploaded_file.name}")
+            elif uploaded_file.name.lower().endswith('.txt'):
+                # Processar arquivo TXT usando o EEGPreprocessor
+                try:
+                    df_processed = process_txt_to_dataframe(str(tmp_file))
+                    st.session_state.uploaded_data[uploaded_file.name] = df_processed
+                    st.success(f"✅ TXT processado: {uploaded_file.name} - {len(df_processed)} amostras")
+                    st.info(f"📊 Colunas disponíveis: {', '.join(df_processed.columns.tolist())}")
+                except Exception as e:
+                    st.error(f"❌ Erro ao processar arquivo TXT {uploaded_file.name}: {str(e)}")
+                    continue
+            else:
+                st.warning(f"⚠️ Tipo de arquivo não suportado: {uploaded_file.name}")
+                continue
 
 # Sidebar - Seleção de arquivo
 st.sidebar.header("📂 Seleção de Arquivo")
@@ -325,11 +342,19 @@ st.sidebar.markdown("---")
 st.sidebar.header("🎯 Filtros")
 if 'Att' in df.columns:
     att_min, att_max = float(df['Att'].min()), float(df['Att'].max())
+    # Verificar se min e max são diferentes para evitar erro no slider
+    if att_min == att_max:
+        att_min = max(0, att_min - 5)  # Adicionar margem se valores forem iguais
+        att_max = att_max + 5
     att_range = st.sidebar.slider("Intervalo Att", att_min, att_max, (att_min, att_max))
 else:
     att_range = None
 if 'Med' in df.columns:
     med_min, med_max = float(df['Med'].min()), float(df['Med'].max())
+    # Verificar se min e max são diferentes para evitar erro no slider
+    if med_min == med_max:
+        med_min = max(0, med_min - 5)  # Adicionar margem se valores forem iguais
+        med_max = med_max + 5
     med_range = st.sidebar.slider("Intervalo Med", med_min, med_max, (med_min, med_max))
 else:
     med_range = None
@@ -786,7 +811,7 @@ with tab4:
             z=corr_matrix.values,
             x=corr_matrix.columns,
             y=corr_matrix.columns,
-            colorscale='RdBu',
+            colorscale='RdBu_r',
             zmid=0,
             text=np.round(corr_matrix.values, 2),
             texttemplate='%{text}',
