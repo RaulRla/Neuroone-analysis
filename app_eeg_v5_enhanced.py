@@ -543,10 +543,17 @@ with tab2:
     st.header("🌊 Análise de Ondas Cerebrais")
     
     if dias and not df_filtrado.empty:
-        df_dia = df_filtrado[df_filtrado['Datetime'].dt.date == pd.to_datetime(dia_escolhido).date()].copy()
+        # Se "Todos os dias" foi selecionado
+        if dia_escolhido == "📅 Todos os dias":
+            df_dia = df_filtrado.copy()
+        else:
+            df_dia = df_filtrado[df_filtrado['Datetime'].dt.date == pd.to_datetime(dia_escolhido).date()].copy()
         
         if not df_dia.empty:
-            df_dia['sec_day'] = segs_desde_meianoite(df_dia['Datetime'])
+            if 'Datetime' in df_dia.columns and not df_dia['Datetime'].isna().all():
+                df_dia['sec_day'] = segs_desde_meianoite(df_dia['Datetime'])
+            else:
+                df_dia['sec_day'] = range(len(df_dia))
             plot_df = get_plot_df(df_dia)
             
             # Análise Espectral - Radar Chart
