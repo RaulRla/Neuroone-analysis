@@ -323,20 +323,18 @@ dias = dias_disponiveis(df)
 # Sidebar - Seleção de dia
 st.sidebar.header("📅 Seleção de Período")
 if dias:
-    # Opção para selecionar todos os dias
-    select_all_days = st.sidebar.checkbox("📅 Selecionar TODOS os dias", value=False)
+    # Adicionar opção "Todos os dias" na lista
+    dias_options = ["📅 Todos os dias"] + dias
+    dia_escolhido = st.sidebar.selectbox("Escolha um dia para análise", options=dias_options, index=0)
     
-    if select_all_days:
-        dia_escolhido = None
-        dias_overlay = dias
+    if dia_escolhido == "📅 Todos os dias":
+        dias_overlay = []
         st.sidebar.info(f"✅ Analisando todos os {len(dias)} dias disponíveis")
     else:
-        dia_escolhido = st.sidebar.selectbox("Escolha um dia para análise", options=dias, index=0)
         dias_overlay = st.sidebar.multiselect("Sobrepor outros dias (comparação)", options=dias, default=[])
 else:
     dia_escolhido = None
     dias_overlay = []
-    select_all_days = False
 
 # Sidebar - Visualizações
 st.sidebar.markdown("---")
@@ -391,11 +389,20 @@ with tab1:
     st.header("📊 Visão Geral e Séries Temporais")
     
     if dias:
-        df_dia = df_filtrado[df_filtrado['Datetime'].dt.date == pd.to_datetime(dia_escolhido).date()].copy()
-        if df_dia.empty:
-            st.warning("❌ Nenhum dado para o dia selecionado após os filtros.")
+        # Se "Todos os dias" foi selecionado
+        if dia_escolhido == "📅 Todos os dias":
+            df_dia = df_filtrado.copy()
+            st.info(f"📊 Analisando dados consolidados de {len(dias)} dias")
         else:
-            df_dia['sec_day'] = segs_desde_meianoite(df_dia['Datetime'])
+            df_dia = df_filtrado[df_filtrado['Datetime'].dt.date == pd.to_datetime(dia_escolhido).date()].copy()
+        
+        if df_dia.empty:
+            st.warning("❌ Nenhum dado para o período selecionado após os filtros.")
+        else:
+            if 'Datetime' in df_dia.columns and not df_dia['Datetime'].isna().all():
+                df_dia['sec_day'] = segs_desde_meianoite(df_dia['Datetime'])
+            else:
+                df_dia['sec_day'] = range(len(df_dia))
             plot_df = get_plot_df(df_dia)
 
             # Métricas do dia
