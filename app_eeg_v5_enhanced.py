@@ -323,11 +323,20 @@ dias = dias_disponiveis(df)
 # Sidebar - Seleção de dia
 st.sidebar.header("📅 Seleção de Período")
 if dias:
-    dia_escolhido = st.sidebar.selectbox("Escolha um dia para análise", options=dias, index=0)
-    dias_overlay = st.sidebar.multiselect("Sobrepor outros dias (comparação)", options=dias, default=[])
+    # Opção para selecionar todos os dias
+    select_all_days = st.sidebar.checkbox("📅 Selecionar TODOS os dias", value=False)
+    
+    if select_all_days:
+        dia_escolhido = None
+        dias_overlay = dias
+        st.sidebar.info(f"✅ Analisando todos os {len(dias)} dias disponíveis")
+    else:
+        dia_escolhido = st.sidebar.selectbox("Escolha um dia para análise", options=dias, index=0)
+        dias_overlay = st.sidebar.multiselect("Sobrepor outros dias (comparação)", options=dias, default=[])
 else:
     dia_escolhido = None
     dias_overlay = []
+    select_all_days = False
 
 # Sidebar - Visualizações
 st.sidebar.markdown("---")
