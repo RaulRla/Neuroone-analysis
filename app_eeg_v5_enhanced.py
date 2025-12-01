@@ -1070,7 +1070,7 @@ if st.sidebar.button("📄 Gerar Relatório PDF", type="primary", use_container_
             story = []
             
             # Título
-            story.append(Paragraph("🧠 Relatório de Análise EEG Avançada {uploaded_file.name}", title_style))
+            story.append(Paragraph("🧠 Relatório de Análise EEG Avançada, [uploaded_file.name]", title_style))
             story.append((Spacer(1, 0.1*inch))
 )
             
@@ -1874,4 +1874,5 @@ st.sidebar.info("""
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("*v5.0 Enhanced - Análise Completa + Multi-Sessão*")
+
 
