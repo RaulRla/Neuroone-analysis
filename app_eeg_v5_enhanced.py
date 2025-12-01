@@ -323,15 +323,8 @@ dias = dias_disponiveis(df)
 # Sidebar - Seleção de dia
 st.sidebar.header("📅 Seleção de Período")
 if dias:
-    # Adicionar opção "Todos os dias" na lista
-    dias_options = ["📅 Todos os dias"] + dias
-    dia_escolhido = st.sidebar.selectbox("Escolha um dia para análise", options=dias_options, index=0)
-    
-    if dia_escolhido == "📅 Todos os dias":
-        dias_overlay = []
-        st.sidebar.info(f"✅ Analisando todos os {len(dias)} dias disponíveis")
-    else:
-        dias_overlay = st.sidebar.multiselect("Sobrepor outros dias (comparação)", options=dias, default=[])
+    dia_escolhido = st.sidebar.selectbox("Escolha um dia para análise", options=dias, index=0)
+    dias_overlay = st.sidebar.multiselect("Sobrepor outros dias (comparação)", options=dias, default=[])
 else:
     dia_escolhido = None
     dias_overlay = []
@@ -389,20 +382,11 @@ with tab1:
     st.header("📊 Visão Geral e Séries Temporais")
     
     if dias:
-        # Se "Todos os dias" foi selecionado
-        if dia_escolhido == "📅 Todos os dias":
-            df_dia = df_filtrado.copy()
-            st.info(f"📊 Analisando dados consolidados de {len(dias)} dias")
-        else:
-            df_dia = df_filtrado[df_filtrado['Datetime'].dt.date == pd.to_datetime(dia_escolhido).date()].copy()
-        
+        df_dia = df_filtrado[df_filtrado['Datetime'].dt.date == pd.to_datetime(dia_escolhido).date()].copy()
         if df_dia.empty:
-            st.warning("❌ Nenhum dado para o período selecionado após os filtros.")
+            st.warning("❌ Nenhum dado para o dia selecionado após os filtros.")
         else:
-            if 'Datetime' in df_dia.columns and not df_dia['Datetime'].isna().all():
-                df_dia['sec_day'] = segs_desde_meianoite(df_dia['Datetime'])
-            else:
-                df_dia['sec_day'] = range(len(df_dia))
+            df_dia['sec_day'] = segs_desde_meianoite(df_dia['Datetime'])
             plot_df = get_plot_df(df_dia)
 
             # Métricas do dia
@@ -543,17 +527,10 @@ with tab2:
     st.header("🌊 Análise de Ondas Cerebrais")
     
     if dias and not df_filtrado.empty:
-        # Se "Todos os dias" foi selecionado
-        if dia_escolhido == "📅 Todos os dias":
-            df_dia = df_filtrado.copy()
-        else:
-            df_dia = df_filtrado[df_filtrado['Datetime'].dt.date == pd.to_datetime(dia_escolhido).date()].copy()
+        df_dia = df_filtrado[df_filtrado['Datetime'].dt.date == pd.to_datetime(dia_escolhido).date()].copy()
         
         if not df_dia.empty:
-            if 'Datetime' in df_dia.columns and not df_dia['Datetime'].isna().all():
-                df_dia['sec_day'] = segs_desde_meianoite(df_dia['Datetime'])
-            else:
-                df_dia['sec_day'] = range(len(df_dia))
+            df_dia['sec_day'] = segs_desde_meianoite(df_dia['Datetime'])
             plot_df = get_plot_df(df_dia)
             
             # Análise Espectral - Radar Chart
@@ -1565,14 +1542,11 @@ if st.sidebar.button("📄 Gerar Relatório PDF", type="primary", use_container_
             doc.build(story)
             buffer.seek(0)
             
-            # Extrair nome da pessoa do nome do arquivo
-            person_name = selected_file.replace('.csv', '').replace('.txt', '')
-            
             # Botão de download
             st.sidebar.download_button(
                 label="⬇️ Baixar Relatório PDF",
                 data=buffer,
-                file_name=f"Relatório de Análise EEG {person_name}.pdf",
+                file_name=f"relatorio_eeg_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                 mime="application/pdf",
                 type="primary",
                 use_container_width=True
